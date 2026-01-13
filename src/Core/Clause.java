@@ -1,13 +1,17 @@
+package Core;
+
 import Terms.Term;
 
 public class Clause {
     String predicate;
     Term[] args;
 
-    Clause(String predicate, Term... args){
-        this.predicate = predicate;
+    public Clause(String predicate, Term... args){
+        this.predicate = predicate.toLowerCase();
         this.args = args;
     }
+
+
 
     public String toString(){
         StringBuilder sb = new StringBuilder();
