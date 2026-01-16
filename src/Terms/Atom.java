@@ -1,12 +1,10 @@
 package Terms;
 
-import java.util.Objects;
-
-public class Atom implements Term {
-    private final String name;
+public class Atom implements Term{
+    private String name;
 
     public Atom(String name){
-        this.name = name.toLowerCase();
+        this.name = name;
     }
 
     public String getName(){
@@ -16,11 +14,6 @@ public class Atom implements Term {
     @Override
     public boolean isVariable(){
         return false;
-    }
-
-    @Override
-    public String toString(){
-        return this.name;
     }
 
     @Override
@@ -35,7 +28,7 @@ public class Atom implements Term {
 
         Atom atom = (Atom) obj;
 
-        if(this.name.equals(atom.getName())){
+        if(this.name.equals(atom.name)){
             return true;
         } else {
             return false;
@@ -43,7 +36,12 @@ public class Atom implements Term {
     }
 
     @Override
+    public String toString(){
+        return this.name;
+    }
+
+    @Override
     public int hashCode(){
-        return Objects.hashCode(this.name);
+        return this.name.hashCode();
     }
 }

@@ -27,6 +27,10 @@
 
 `InputHandler` - Reads queries or facts from the user
 
+`predicateParse()` - makes sure the input matches the correct syntax. Example: "parent(john, bob)"
+
+`ruleParse()` - makes sure the input matches the correct syntax of: "grandparent(x, z) :- parent(x, y), parent(y, z)", then runs `predicateParse()` on each argument
+
 `StorageHandler` - Saves and loads facts or rules to and from a file
 
 

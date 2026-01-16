@@ -1,0 +1,213 @@
+package Handlers;
+
+import Logic.Predicate;
+import Logic.Rule;
+import Terms.Atom;
+import Terms.Term;
+import Terms.Variable;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+
+public class InputHandler {
+    private KnowledgeBase kb;
+    private int queryIndex = -1;
+    private boolean hasQuery = false;
+
+    public InputHandler(KnowledgeBase kb){
+        this.kb = kb;
+        this.start();
+    }
+
+    public void start(){
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Welcome to PROLOG (type '!q' to exit)");
+
+        while(true){
+            System.out.print("> ");
+            String input = sc.nextLine().trim();
+
+            if(input.equalsIgnoreCase("!q")){
+                break;
+            }
+
+            if(input.isEmpty()){
+                continue;
+            }
+
+            handleInput(input);
+        }
+    }
+
+    private void handleInput(String input){
+        input = input.replaceAll(" ", "");
+
+        if(input.contains(":-") && input.contains(",")){
+            Rule r = ruleParse(input);
+
+            if(r != null){
+                kb.addRule(r);
+            }
+        } else {
+            Predicate p = predicateParse(input, false);
+
+            if(p != null){
+                if(hasQuery){
+                    List<Map<Variable, Term>> answers = kb.query(p);
+
+                    System.out.println(answers);
+                } else {
+                    kb.addFact(p);
+                }
+            }
+        }
+    }
+
+    private Rule ruleParse(String input){
+        String[] parts = input.split(":-");
+        if(parts.length != 2){
+            OutputHandler.badSyntax();
+            return null;
+        }
+
+        String head = parts[0];
+        String body = parts[1];
+
+        StringBuilder sb = new StringBuilder();
+
+        int index = body.indexOf("),") + 1;
+
+        if(index == -1){
+            OutputHandler.badSyntax();
+        } else {
+            while(index != -1){
+                sb.append(body.substring(0, index)).append(" ");
+                body = body.substring(index + 1);
+                index = body.indexOf("),");
+            }
+            sb.append(body);
+        }
+
+        String[] preds = sb.toString().split(" ");
+
+        Predicate headPred = predicateParse(head, true);
+
+        List<Predicate> bodyPreds = new ArrayList<>();
+        for(String pred : preds){
+            bodyPreds.add(predicateParse(pred, true));
+        }
+
+        if(headPred != null && bodyPreds != null){
+            return new Rule(headPred, bodyPreds);
+        } else {
+            OutputHandler.badSyntax();
+            return null;
+        }
+
+    }
+
+    private Predicate predicateParse(String input, boolean ruleMode){
+        try{
+            hasQuery = false;
+            StringBuilder sb = new StringBuilder();
+
+            if(Character.isLetter(input.charAt(0))){
+                int i = 0;
+                while(Character.isLetter(input.charAt(i))){
+                    sb.append(input.charAt(i));
+                    i++;
+                }
+
+                if(input.charAt(i) == '('){
+                    String name = sb.toString();
+                    i++;
+                    sb.setLength(0);
+
+                    int length = 0;
+                    while(Character.isLetter(input.charAt(i))){
+                        sb.append(input.charAt(i));
+                        i++;
+                        length++;
+                    }
+
+                    if(ruleMode){
+                        if(length != 1 || !Character.isUpperCase(input.charAt(i - 1))){
+                            return null;
+                        }
+                    }
+
+                    if(input.charAt(i) == ','){
+                        if(length == 1 && Character.isUpperCase(input.charAt(i - 1))){
+                            hasQuery = true;
+                        }
+
+                        List<String> args = new ArrayList<>();
+
+                        args.add(sb.toString());
+                        sb.setLength(0);
+
+                        i++;
+                        length = 0;
+
+                        while(Character.isLetter(input.charAt(i))){
+                            sb.append(input.charAt(i));
+                            i++;
+                            length++;
+                        }
+
+                        if(ruleMode){
+                            if(length != 1 || !Character.isUpperCase(input.charAt(i - 1))){
+                                return null;
+                            }
+                        }
+
+                        if(length == 1 && Character.isUpperCase(input.charAt(i - 1))){
+                            if(!ruleMode){
+                                if(hasQuery){
+                                    OutputHandler.badSyntax();
+                                    hasQuery = false;
+                                    return null;
+                                } else {
+                                    hasQuery = true;
+                                }
+                            }
+                        }
+
+                        args.add(sb.toString());
+
+                        if(input.charAt(i) == ')'){
+                            if(i + 1 >= input.length()){
+                                List<Term> terms = new ArrayList<>();
+
+                                for(String arg : args){
+                                    if(arg.length() == 1 && Character.isUpperCase(arg.charAt(0))){
+                                        terms.add(new Variable(arg));
+                                    } else {
+                                        terms.add(new Atom(arg));
+                                    }
+                                }
+
+                                return new Predicate(name, terms);
+                            } else {
+                                OutputHandler.badSyntax();
+                                return null;
+                            }
+                        } else {
+                            OutputHandler.badSyntax();
+                            return null;
+                        }
+                    }
+                }
+            } else {
+                OutputHandler.badSyntax();
+                return null;
+            }
+        } catch (Exception e){
+            OutputHandler.badSyntax();
+        }
+
+        return null;
+    }
+}

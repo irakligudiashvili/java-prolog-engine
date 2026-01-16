@@ -1,8 +1,6 @@
 package Terms;
 
-import java.util.Objects;
-
-public class Variable implements Term {
+public class Variable implements Term{
     private String name;
 
     public Variable(String name){
@@ -19,11 +17,6 @@ public class Variable implements Term {
     }
 
     @Override
-    public String toString(){
-        return this.name;
-    }
-
-    @Override
     public boolean equals(Object obj){
         if(this == obj){
             return true;
@@ -35,7 +28,7 @@ public class Variable implements Term {
 
         Variable variable = (Variable) obj;
 
-        if(this.name.equals(variable.getName())){
+        if(this.name.equals(variable.name)){
             return true;
         } else {
             return false;
@@ -43,7 +36,12 @@ public class Variable implements Term {
     }
 
     @Override
+    public String toString(){
+        return this.name;
+    }
+
+    @Override
     public int hashCode(){
-        return Objects.hashCode(this.name);
+        return this.name.hashCode();
     }
 }
