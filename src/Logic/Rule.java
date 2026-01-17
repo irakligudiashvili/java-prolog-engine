@@ -18,4 +18,9 @@ public class Rule {
     public List<Predicate> getBody(){
         return this.body;
     }
+
+    @Override
+    public String toString(){
+        return this.head.toString() + " - " + this.body;
+    }
 }
