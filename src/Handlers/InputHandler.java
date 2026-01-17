@@ -13,7 +13,6 @@ import java.util.Scanner;
 
 public class InputHandler {
     private KnowledgeBase kb;
-    private int queryIndex = -1;
     private boolean hasQuery = false;
 
     public InputHandler(KnowledgeBase kb){
@@ -23,10 +22,10 @@ public class InputHandler {
 
     public void start(){
         Scanner sc = new Scanner(System.in);
-        System.out.println("Welcome to PROLOG (type '!q' to exit)");
+        System.out.println("\u001B[34mWelcome to \u001B[1;34mPROLOG \u001B[33m(type '!q' to exit)");
 
         while(true){
-            System.out.print("> ");
+            System.out.print("\u001B[0m> ");
             String input = sc.nextLine().trim();
 
             if(input.equalsIgnoreCase("!q")){
@@ -44,8 +43,10 @@ public class InputHandler {
     private void handleInput(String input){
         input = input.replaceAll(" ", "");
 
-        if(input.contains(":-") && input.contains(",")){
+        if(input.contains(":-")){
             Rule r = ruleParse(input);
+
+            System.out.println(r.getHead() + " " + r.getBody());
 
             if(r != null){
                 kb.addRule(r);
@@ -57,7 +58,8 @@ public class InputHandler {
                 if(hasQuery){
                     List<Map<Variable, Term>> answers = kb.query(p);
 
-                    System.out.println(answers);
+//                    System.out.println(answers);
+                    OutputHandler.printAnswer(answers);
                 } else {
                     kb.addFact(p);
                 }
@@ -75,36 +77,80 @@ public class InputHandler {
         String head = parts[0];
         String body = parts[1];
 
-        StringBuilder sb = new StringBuilder();
-
-        int index = body.indexOf("),") + 1;
-
-        if(index == -1){
-            OutputHandler.badSyntax();
-        } else {
-            while(index != -1){
-                sb.append(body.substring(0, index)).append(" ");
-                body = body.substring(index + 1);
-                index = body.indexOf("),");
-            }
-            sb.append(body);
-        }
-
-        String[] preds = sb.toString().split(" ");
-
         Predicate headPred = predicateParse(head, true);
-
-        List<Predicate> bodyPreds = new ArrayList<>();
-        for(String pred : preds){
-            bodyPreds.add(predicateParse(pred, true));
-        }
-
-        if(headPred != null && bodyPreds != null){
-            return new Rule(headPred, bodyPreds);
-        } else {
-            OutputHandler.badSyntax();
+        if(headPred == null){
             return null;
         }
+
+        List<Predicate> bodyPreds = new ArrayList<>();
+
+        List<String> preds = new ArrayList<>();
+
+        StringBuilder current = new StringBuilder();
+        int open = 0;
+
+        for(int i = 0; i < body.length(); i++){
+            char c = body.charAt(i);
+            current.append(c);
+            if(c == '('){
+                open++;
+            }
+            if(c == ')'){
+                open--;
+            }
+
+            if(c == ',' && open == 0){
+                preds.add(current.substring(0, current.length() - 1));
+                current.setLength(0);
+            }
+        }
+
+        if(current.length() > 0){
+            preds.add(current.toString());
+        }
+
+        for(String pred : preds){
+            Predicate p = predicateParse(pred, true);
+
+            if(p == null){
+                return null;
+            }
+
+            bodyPreds.add(p);
+        }
+
+        return new Rule(headPred, bodyPreds);
+
+//        StringBuilder sb = new StringBuilder();
+//
+//        int index = body.indexOf("),") + 1;
+//
+//        if(index == -1){
+//            OutputHandler.badSyntax();
+//        } else {
+//            while(index != -1){
+//                sb.append(body.substring(0, index)).append(" ");
+//                body = body.substring(index + 1);
+//                index = body.indexOf("),");
+//            }
+//            sb.append(body);
+//        }
+//
+//        String[] preds = sb.toString().split(" ");
+//
+//        Predicate headPred = predicateParse(head, true);
+//
+//        List<Predicate> bodyPreds = new ArrayList<>();
+//        for(String pred : preds){
+//            bodyPreds.add(predicateParse(pred, true));
+//        }
+//
+//        if(headPred != null && bodyPreds != null){
+//            return new Rule(headPred, bodyPreds);
+//        } else {
+//            OutputHandler.badSyntax();
+//            return null;
+//        }
 
     }
 

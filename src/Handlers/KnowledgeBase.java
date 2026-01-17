@@ -73,6 +73,15 @@ public class KnowledgeBase {
             }
         }
 
+        List<Map<Variable, Term>> raw = query(query, 0);
+        return projectResults(raw, queryVars);
+    }
+
+    private List<Map<Variable, Term>> query(Predicate query, int depth){
+        if (depth > 100) {
+            return new ArrayList<>();
+        }
+
         List<Map<Variable, Term>> results = new ArrayList<>();
 
         // Try to match FACTS
@@ -86,21 +95,25 @@ public class KnowledgeBase {
 
         // Try to match RULES
         for(Rule rule : getRulesByHead(query.getName())){
-            Map<Variable, Term> headSub = Unifier.unify(query, rule.getHead());
+            Rule freshRule = freshCopy(rule);
+
+            Map<Variable, Term> headSub = Unifier.unify(query, freshRule.getHead());
 
             if(headSub == null){
                 continue;
             }
 
-            List<Map<Variable, Term>> bodySolutions = solveBody(rule, headSub);
+            List<Map<Variable, Term>> bodySolutions = solveBody(freshRule, headSub, depth + 1);
 
-            results.addAll(bodySolutions);
+            for(Map<Variable, Term> sol : bodySolutions){
+                results.add(sol);
+            }
         }
 
-        return projectResults(results, queryVars);
+        return results;
     }
 
-    private List<Map<Variable, Term>> solveBody(Rule rule, Map<Variable, Term> initialSub){
+    private List<Map<Variable, Term>> solveBody(Rule rule, Map<Variable, Term> initialSub, int depth){
         List<Map<Variable, Term>> solutions = new ArrayList<>();
         solutions.add(new HashMap<>(initialSub));
 
@@ -110,11 +123,10 @@ public class KnowledgeBase {
             for(Map<Variable, Term> currentSub : solutions){
                 Predicate instantiated = substitute(bodyPred, currentSub);
 
-                List<Map<Variable, Term>> answers = query(instantiated);
+                List<Map<Variable, Term>> answers = query(instantiated, depth + 1);
 
                 for(Map<Variable, Term> ans : answers){
-                    Map<Variable, Term> merged = new HashMap<>(currentSub);
-                    merged.putAll(ans);
+                    Map<Variable, Term> merged = compose(currentSub, ans);
                     newSolutions.add(merged);
                 }
             }
@@ -123,6 +135,20 @@ public class KnowledgeBase {
         }
 
         return solutions;
+    }
+
+    private Map<Variable, Term> compose(Map<Variable, Term> s1, Map<Variable, Term> s2){
+        Map<Variable, Term> result = new HashMap<>();
+
+        for(Map.Entry<Variable, Term> e : s1.entrySet()){
+            result.put(e.getKey(), resolve(e.getValue(), s2));
+        }
+
+        for(Map.Entry<Variable, Term> e : s2.entrySet()){
+            result.put(e.getKey(), e.getValue());
+        }
+
+        return result;
     }
 
     private Predicate substitute(Predicate p, Map<Variable, Term> sub){
@@ -147,7 +173,7 @@ public class KnowledgeBase {
 
             for(Variable v : queryVars){
                 if(sub.containsKey(v)){
-                    filtered.put(v, sub.get(v));
+                    filtered.put(v, resolve(sub.get(v), sub));
                 }
             }
 
@@ -155,5 +181,43 @@ public class KnowledgeBase {
         }
 
         return projected;
+    }
+
+    private Term resolve(Term t, Map<Variable, Term> sub){
+        if(t.isVariable() && sub.containsKey(t)){
+            return resolve(sub.get(t), sub);
+        }
+
+        return t;
+    }
+
+    private Rule freshCopy(Rule rule){
+        Map<Variable, Variable> renameMap = new HashMap<>();
+
+        Predicate newHead = renamePredicate(rule.getHead(), renameMap);
+
+        List<Predicate> newBody = new ArrayList<>();
+
+        for(Predicate p : rule.getBody()){
+            newBody.add(renamePredicate(p, renameMap));
+        }
+
+        return new Rule(newHead, newBody);
+    }
+
+    private Predicate renamePredicate(Predicate p, Map<Variable, Variable> renameMap){
+        List<Term> newTerms = new ArrayList<>();
+
+        for(Term t : p.getArguments()){
+            if(t.isVariable()){
+                Variable v = (Variable) t;
+                renameMap.putIfAbsent(v, new Variable(v.getName() + "_"));
+                newTerms.add(renameMap.get(v));
+            } else {
+                newTerms.add(t);
+            }
+        }
+
+        return new Predicate(p.getName(), newTerms);
     }
 }
