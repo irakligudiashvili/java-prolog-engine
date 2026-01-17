@@ -22,7 +22,7 @@ public class InputHandler {
 
     public void start(){
         Scanner sc = new Scanner(System.in);
-        System.out.println("\u001B[34mWelcome to \u001B[1;34mPROLOG \u001B[33m(type '!q' to exit)");
+        System.out.println("\u001B[34mWelcome to \u001B[1;34mPROLOG \u001B[33m(type '!help' for help)");
 
         while(true){
             System.out.print("\u001B[0m> ");
@@ -43,6 +43,11 @@ public class InputHandler {
     private void handleInput(String input){
         input = input.replaceAll(" ", "");
 
+        if(input.startsWith("!")){
+            handleCommand(input);
+            return;
+        }
+
         if(input.contains(":-")){
             Rule r = ruleParse(input);
 
@@ -62,6 +67,25 @@ public class InputHandler {
                     kb.addFact(p);
                 }
             }
+        }
+    }
+
+    private void handleCommand(String input){
+        switch(input.toLowerCase()){
+            case "!facts":
+                OutputHandler.printFacts(kb.getAllFacts());
+                break;
+            case "!rules":
+                OutputHandler.printRules(kb.getAllRules());
+                break;
+            case "!help":
+                OutputHandler.printHelp();
+                break;
+            case "!examples":
+                OutputHandler.printExamples();
+                break;
+            default:
+                System.out.println("Unknown command. Type !help for a list of commands");
         }
     }
 
