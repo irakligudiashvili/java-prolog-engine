@@ -26,7 +26,7 @@ The system supports variables, rule application and recursion.
 
 ## Project Structure
 
-```json
+```bash
 src/
 │
 ├── Handlers/
